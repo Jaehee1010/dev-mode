@@ -10,7 +10,8 @@ const chaincodeName = 'abstore';
 const walletPath = path.join(process.cwd(), '..', 'wallet');
 const ccpPath = path.resolve(__dirname, '..', 'connection-org1.json');
 const org1UserId = 'appUser';
-async function send(type, func, args, res, result){
+
+async function send(type, func, args, res) { // 콜백 제거, res만 받음
     try {
         const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
         const wallet = await Wallets.newFileSystemWallet(walletPath);
@@ -30,24 +31,26 @@ async function send(type, func, args, res, result){
             console.log('Success to connect channel1');
             const contract = network.getContract(chaincodeName);
 
-            if(type){
+            let result;
+            if (type) {
                 result = await contract.evaluateTransaction(func, ...args);
-                res.json(result.toString());
+                res.json(JSON.parse(result.toString())); // JSON 파싱 후 응답
             } else {
                 result = await contract.submitTransaction(func, ...args);
-                res.json("Success");
+                res.json({ message: 'Transaction submitted successfully', result: JSON.parse(result.toString()) });
             }
-            
-
         } catch (error) {
-            res.status(500).send({ error: `${error}`});
+            console.error('Transaction error:', error);
+            res.status(500).json({ error: `Transaction failed: ${error.message}` });
         } finally {
             gateway.disconnect();
         }
     } catch (error) {
-        res.status(500).send({ error: `${error}`});
+        console.error('Connection error:', error);
+        res.status(500).json({ error: `Connection failed: ${error.message}` });
     }
 }
+
 module.exports = {
-    send:send
-}
+    send: send
+};

@@ -1,62 +1,42 @@
 const express = require('express');
+const path = require('path');
+const sdk = require('./sdk');
+const cors = require('cors');
 const app = express();
-let path = require('path');
-let sdk = require('./sdk');
-
-const PORT = 8001;
-const HOST = '0.0.0.0';
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors({ origin: '*' })); // 모든 오리진 허용 (프로덕션에서는 제한 권장)
 
-app.post('/init', function (req, res) {
-   const { WalletName, Username, Password } = req.body;
-   const args = [WalletName, Username, Password];
-   sdk.send(false, 'Init', args, res);
-});
-
-app.get('/add_balance', function (req, res) {
-   const { WalletName, amount } = req.query;
-   const args = [WalletName, amount.toString()];
-   sdk.send(false, 'AddBalance', args, res);
-});
-
-app.post('/exchange_balance', function (req, res) {
-   const { walletName1, walletName2, amount } = req.body;
-   const args = [walletName1, walletName2, amount.toString()];
-   sdk.send(false, 'ExchangeBalance', args, res);
-});
-
-app.get('/queryall', function (req, res) {
-  // Modified to ensure we're always returning an array
-  sdk.send(true, 'QueryAll', [], function(err, data) {
-    if (err) {
-      return res.status(500).json({ error: err.toString() });
+// 상태 변경 트랜잭션 처리
+app.post('/invoke', async (req, res) => {
+    const { function: fcn, args } = req.body;
+    if (!fcn || !args || !Array.isArray(args)) {
+        return res.status(400).json({ error: '함수 이름과 인자가 필요합니다.' });
     }
-    
-    // Ensure data is an array before sending the response
-    try {
-      let result = data;
-      if (typeof result === 'string') {
-        result = JSON.parse(result);
-      }
-      
-      // If result is not an array, wrap it in an array
-      if (!Array.isArray(result)) {
-        if (result === null || result === undefined) {
-          result = [];
-        } else {
-          result = [result];
-        }
-      }
-      
-      res.json(result);
-    } catch (e) {
-      console.error("Error processing query results:", e);
-      res.status(500).json({ error: "Error processing query results" });
-    }
-  });
+
+    console.log(`invoke 호출: ${fcn} with args: ${args}`);
+    await sdk.send(false, fcn, args, res); // 콜백 대신 res 전달
 });
-app.use(express.static(path.join(__dirname, '../client')));
-app.listen(PORT, HOST);
-console.log(`Running on http://${HOST}:${PORT}`);
+
+// 조회 트랜잭션 처리
+app.post('/query', async (req, res) => {
+    const { function: fcn, args } = req.body;
+    if (!fcn || !args || !Array.isArray(args)) {
+        return res.status(400).json({ error: '함수 이름과 인자가 필요합니다.' });
+    }
+
+    console.log(`query 호출: ${fcn} with args: ${args}`);
+    await sdk.send(true, fcn, args, res); // 콜백 대신 res 전달
+});
+
+// 정적 파일 제공 (index.html)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 서버 시작
+const PORT = 3000;
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+    console.log(`서버가 http://${HOST}:${PORT}에서 실행 중입니다.`);
+});
