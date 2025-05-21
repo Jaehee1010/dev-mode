@@ -1,5 +1,5 @@
 {
-  "name": "application",
+  "name": "dev-mode",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,10 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
     "express": "^5.1.0",
     "fabric-ca-client": "^2.2.9",
-    "fabric-contract-api": "^2.2.0",
     "fabric-network": "^2.2.9"
   }
 }

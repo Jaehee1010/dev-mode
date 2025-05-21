@@ -7,12 +7,6 @@ if [ "$#" -lt 1 ]; then
  exit 1
 fi
 
-## 체인코드 빌드
-# echo "체인코드 빌드"
-# cd ./chaincode/${1}/go/
-# go mod init
-# go build
-
 ## 체인코드 패키지화 (package)
 echo "체인코드 패키지화"
 cd /opt/gopath/src/github.com/hyperledger/fabric/peer

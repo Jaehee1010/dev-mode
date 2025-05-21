@@ -1,42 +1,72 @@
 const express = require('express');
-const path = require('path');
-const sdk = require('./sdk');
 const cors = require('cors');
 const app = express();
+const path = require('path');
+const sdk = require('./sdk');
+
+const PORT = 8001;
+const HOST = '0.0.0.0';
+
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: '*' })); // 모든 오리진 허용 (프로덕션에서는 제한 권장)
 
-// 상태 변경 트랜잭션 처리
-app.post('/invoke', async (req, res) => {
-    const { function: fcn, args } = req.body;
-    if (!fcn || !args || !Array.isArray(args)) {
-        return res.status(400).json({ error: '함수 이름과 인자가 필요합니다.' });
-    }
-
-    console.log(`invoke 호출: ${fcn} with args: ${args}`);
-    await sdk.send(false, fcn, args, res); // 콜백 대신 res 전달
+// Initialize the voting system
+app.get('/init', function (req, res) {
+    let args = [];
+    sdk.send(false, 'Init', args, res); // initLedger 대신 Init 호출
 });
 
-// 조회 트랜잭션 처리
-app.post('/query', async (req, res) => {
-    const { function: fcn, args } = req.body;
-    if (!fcn || !args || !Array.isArray(args)) {
-        return res.status(400).json({ error: '함수 이름과 인자가 필요합니다.' });
-    }
-
-    console.log(`query 호출: ${fcn} with args: ${args}`);
-    await sdk.send(true, fcn, args, res); // 콜백 대신 res 전달
+// Register a candidate
+app.get('/registerCandidate', function (req, res) {
+    let candidateId = req.query.candidateId;
+    let name = req.query.name;
+    let args = [candidateId, name];
+    sdk.send(false, 'registerCandidate', args, res);
 });
 
-// 정적 파일 제공 (index.html)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Register a voter
+app.get('/registerVoter', function (req, res) {
+    let voterId = req.query.voterId;
+    let name = req.query.name;
+    let args = [voterId, name];
+    sdk.send(false, 'registerVoter', args, res);
 });
 
-// 서버 시작
-const PORT = 3000;
-const HOST = '0.0.0.0';
-app.listen(PORT, HOST, () => {
-    console.log(`서버가 http://${HOST}:${PORT}에서 실행 중입니다.`);
+// Cast a vote
+app.get('/vote', function (req, res) {
+    let voterId = req.query.voterId;
+    let candidateId = req.query.candidateId;
+    let args = [voterId, candidateId];
+    sdk.send(false, 'vote', args, res);
 });
+
+// End the voting process
+app.get('/endVoting', function (req, res) {
+    let args = [];
+    sdk.send(false, 'endVoting', args, res);
+});
+
+// Get voting results
+app.get('/getVotingResults', function (req, res) {
+    let args = [];
+    sdk.send(true, 'getVotingResults', args, res);
+});
+
+// Get voter information
+app.get('/getVoterInfo', function (req, res) {
+    let voterId = req.query.voterId;
+    let args = [voterId];
+    sdk.send(true, 'getVoterInfo', args, res);
+});
+
+// Get candidate information
+app.get('/getCandidateInfo', function (req, res) {
+    let candidateId = req.query.candidateId;
+    let args = [candidateId];
+    sdk.send(true, 'getCandidateInfo', args, res);
+});
+
+app.use(express.static(path.join(__dirname, '../client')));
+app.listen(PORT, HOST);
+console.log(`Running on http://${HOST}:${PORT}`);

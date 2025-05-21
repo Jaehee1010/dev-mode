@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -30,7 +30,7 @@
       };
 
       const functionLabels = {
-        initLedger: '원장 초기화',
+        Init: '원장 초기화',
         registerCandidate: '후보자 등록',
         registerVoter: '유권자 등록',
         vote: '투표',
@@ -94,49 +94,49 @@
 
     // 메인 App 컴포넌트
     function App() {
-      const [activeFunction, setActiveFunction] = useState('initLedger');
+      const [activeFunction, setActiveFunction] = useState('Init');
       const [result, setResult] = useState(null);
       const [error, setError] = useState(null);
 
       const functionConfigs = {
-        initLedger: { fields: [], endpoint: '/invoke' },
+        Init: { fields: [], endpoint: '/init' },
         registerCandidate: {
           fields: [
             { name: 'candidateId', label: '후보자 ID', placeholder: '예: candidate1' },
             { name: 'name', label: '후보자 이름', placeholder: '예: 홍길동' },
           ],
-          endpoint: '/invoke',
+          endpoint: '/registerCandidate',
         },
         registerVoter: {
           fields: [
             { name: 'voterId', label: '유권자 ID', placeholder: '예: voter1' },
             { name: 'name', label: '유권자 이름', placeholder: '예: 김영희' },
           ],
-          endpoint: '/invoke',
+          endpoint: '/registerVoter',
         },
         vote: {
           fields: [
             { name: 'voterId', label: '유권자 ID', placeholder: '예: voter1' },
             { name: 'candidateId', label: '후보자 ID', placeholder: '예: candidate1' },
           ],
-          endpoint: '/invoke',
+          endpoint: '/vote',
         },
-        endVoting: { fields: [], endpoint: '/invoke' },
-        getVotingResults: { fields: [], endpoint: '/query' },
+        endVoting: { fields: [], endpoint: '/endVoting' },
+        getVotingResults: { fields: [], endpoint: '/getVotingResults' },
         getVoterInfo: {
           fields: [{ name: 'voterId', label: '유권자 ID', placeholder: '예: voter1' }],
-          endpoint: '/query',
+          endpoint: '/getVoterInfo',
         },
         getCandidateInfo: {
           fields: [
             { name: 'candidateId', label: '후보자 ID', placeholder: '예: candidate1' },
           ],
-          endpoint: '/query',
+          endpoint: '/getCandidateInfo',
         },
       };
 
       const functionLabels = {
-        initLedger: '원장 초기화',
+        Init: '원장 초기화',
         registerCandidate: '후보자 등록',
         registerVoter: '유권자 등록',
         vote: '투표',
@@ -151,9 +151,14 @@
         setError(null);
         const config = functionConfigs[functionName];
         try {
-          const response = await axios.post(`http://localhost:3000${config.endpoint}`, {
-            function: functionName,
-            args,
+          const params = {};
+          args.forEach((arg, index) => {
+            if (config.fields[index]) {
+              params[config.fields[index].name] = arg;
+            }
+          });
+          const response = await axios.get(`http://localhost:8001${config.endpoint}`, {
+            params,
           });
           setResult(response.data);
         } catch (err) {
@@ -199,4 +204,4 @@
     ReactDOM.render(<App />, document.getElementById('root'));
   </script>
 </body>
-</html> -->
+</html>
