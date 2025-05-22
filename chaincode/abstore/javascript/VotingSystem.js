@@ -9,28 +9,34 @@ const shim = require('fabric-shim');
 console.log('Starting VotingSystem.js...');
 
 class VotingSystem {
+
   async Init(stub) {
-    console.info('========= VotingSystem Init =========');
-    let ret = stub.getFunctionAndParameters();
-    console.info('Init function called with:', ret);
-    
+    console.info('Init called - using alternative approach');
+    // 아무것도 하지 않고 undefined 반환 (fabric-shim이 자동 처리)
+    return;
+  }
+
+  // Init 대신 일반 함수로 초기화 처리
+  async initializeVotingSystem(stub, args) {
+    console.info('========= Initialize Voting System =========');
     try {
-      // 투표 시스템 초기 상태 설정 (단순화)
       const votingActive = {
         isActive: true,
         totalVoters: 0,
-        totalVotes: 0
+        totalVotes: 0,
+        initializedAt: new Date().toISOString()
       };
       
       await stub.putState('votingActive', Buffer.from(JSON.stringify(votingActive)));
-      console.info('========= VotingSystem Init Complete =========');
+      console.info('Voting system initialized successfully');
       
-      // ABstore 패턴처럼 단순하게 success() 반환
-      return shim.success();
-      
+      return Buffer.from(JSON.stringify({
+        message: '투표 시스템이 성공적으로 초기화되었습니다.',
+        status: 'success'
+      }));
     } catch (error) {
-      console.error('Init error:', error);
-      return shim.error(error.toString());
+      console.error('Initialize error:', error);
+      throw new Error(`초기화 실패: ${error.message}`);
     }
   }
 

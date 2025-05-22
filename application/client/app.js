@@ -13,10 +13,10 @@ app.controller('AppCtrl', function($scope, appFactory) {
     $("#success_candidate_info").hide();
 
     // Initialize the voting system
-    $scope.initLedger = function() {
-        appFactory.initLedger(function(data) {
+    $scope.init= function() {
+        appFactory.init(function(data) {
             if (data && data.message) {
-                $scope.init_ledger = data.message;
+                $scope.init= data.message;
                 $("#success_init").show();
                 if (!$scope.$$phase) {
                     $scope.$apply();
@@ -156,11 +156,11 @@ app.factory('appFactory', function($http) {
     var factory = {};
 
     // Initialize the voting system
-    factory.initLedger = function(callback) {
+    factory.init = function(callback) {
         $http.get('/init').then(function(response) {
             callback(response.data);
         }, function(error) {
-            callback(null, error.data && error.data.error || "Failed to initialize ledger.");
+            callback(null, error.data && error.data.error || "Failed to init.");
         });
     };
 
