@@ -40,13 +40,6 @@ class VotingSystem {
     }
   }
 
-  // initLedger는 Init와 동일하게 처리하거나 제거
-  // async initLedger(stub, args) {
-  //   console.info('========= VotingSystem initLedger =========');
-  //   // Init 함수와 동일한 로직으로 처리
-  //   return await this.Init(stub);
-  // }
-
   async Invoke(stub) {
     let ret = stub.getFunctionAndParameters();
     console.info('Invoke called with:', ret);
@@ -165,6 +158,8 @@ class VotingSystem {
     }
   }
 
+  //투표 함수
+  // 유권자 ID와 후보자 ID를 인자로 받아 투표를 처리
   async vote(stub, args) {
     console.info('========= Vote Start =========');
     if (args.length !== 2) {
@@ -258,6 +253,8 @@ class VotingSystem {
     }));
   }
 
+  // 투표결과를 가져오는 함수
+  // getStateByRange를 사용하여 모든 상태를 순회
   async getVotingResults(stub, args) {
     console.info('========= Get Voting Results Start =========');
     if (args.length !== 0) {
@@ -271,13 +268,8 @@ class VotingSystem {
     
     const votingStatus = JSON.parse(votingStatusAsBytes.toString());
     
-    const queryString = {
-      selector: {
-        docType: 'candidate'
-      }
-    };
-    
-    const candidatesIterator = await stub.getQueryResult(JSON.stringify(queryString));
+    // getStateByRange를 사용하여 모든 상태를 순회
+    const iterator = await stub.getStateByRange('', '');
     const participationRate = votingStatus.totalVoters > 0 ? 
       ((votingStatus.totalVotes / votingStatus.totalVoters) * 100).toFixed(2) + '%' : '0.00%';
       
@@ -291,27 +283,38 @@ class VotingSystem {
     
     try {
       while (true) {
-        const res = await candidatesIterator.next();
+        const res = await iterator.next();
         if (res.value) {
-          const candidateAsBytes = res.value.value.toString('utf8');
-          const candidate = JSON.parse(candidateAsBytes);
-          const votePercentage = votingStatus.totalVotes > 0 ?
-            ((candidate.voteCount / votingStatus.totalVotes) * 100).toFixed(2) + '%' : '0.00%';
-          results.candidates.push({
-            id: candidate.id,
-            name: candidate.name,
-            voteCount: candidate.voteCount,
-            votePercentage: votePercentage
-          });
+          try {
+            const key = res.value.key;
+            const valueAsString = res.value.value.toString('utf8');
+            const record = JSON.parse(valueAsString);
+            
+            // docType이 'candidate'인 레코드만 필터링
+            if (record.docType === 'candidate') {
+              const votePercentage = votingStatus.totalVotes > 0 ?
+                ((record.voteCount / votingStatus.totalVotes) * 100).toFixed(2) + '%' : '0.00%';
+              results.candidates.push({
+                id: record.id,
+                name: record.name,
+                voteCount: record.voteCount,
+                votePercentage: votePercentage
+              });
+            }
+          } catch (parseError) {
+            // JSON 파싱 실패한 경우 (votingActive 등) 무시하고 계속
+            console.log('Skipping non-JSON record:', res.value.key);
+          }
         }
         if (res.done) {
           break;
         }
       }
     } finally {
-      await candidatesIterator.close();
+      await iterator.close();
     }
     
+    // 득표수 기준으로 내림차순 정렬
     results.candidates.sort((a, b) => b.voteCount - a.voteCount);
     console.info('========= Get Voting Results Complete =========');
     return Buffer.from(JSON.stringify(results));

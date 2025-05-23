@@ -68,25 +68,184 @@
       );
     }
 
-    // ResultDisplay 컴포넌트
+    // 투표 결과를 보기 좋게 표시하는 컴포넌트
+    function VotingResultsDisplay({ data }) {
+      return (
+        <div className="space-y-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-blue-800 mb-2">투표 상태</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">상태:</span>
+                <span className={`ml-2 px-2 py-1 rounded text-xs ${data.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {data.isActive ? '진행중' : '종료됨'}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600">참여율:</span>
+                <span className="ml-2 font-medium">{data.participationRate}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">등록 유권자:</span>
+                <span className="ml-2 font-medium">{data.totalVoters}명</span>
+              </div>
+              <div>
+                <span className="text-gray-600">총 투표수:</span>
+                <span className="ml-2 font-medium">{data.totalVotes}표</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-green-800 mb-3">후보자별 득표 현황</h4>
+            <div className="space-y-3">
+              {data.candidates.map((candidate, index) => (
+                <div key={candidate.id} className="bg-white p-3 rounded border">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-lg">
+                      {index + 1}. {candidate.name} (ID: {candidate.id})
+                    </span>
+                    <span className="text-sm text-gray-500">{candidate.votePercentage}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="flex-1 bg-gray-200 rounded-full h-3 mr-3">
+                      <div 
+                        className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
+                        style={{ width: candidate.votePercentage }}
+                      ></div>
+                    </div>
+                    <span className="font-bold text-indigo-600">{candidate.voteCount}표</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 개별 데이터를 보기 좋게 표시하는 컴포넌트
+    function DataDisplay({ data, title }) {
+      const formatValue = (key, value) => {
+        if (key === 'hasVoted') {
+          return value ? '투표 완료' : '투표 전';
+        }
+        if (key === 'registeredAt' || key === 'votedAt') {
+          return new Date(value).toLocaleString('ko-KR');
+        }
+        return value;
+      };
+
+      const getKeyLabel = (key) => {
+        const labels = {
+          id: 'ID',
+          name: '이름',
+          hasVoted: '투표 상태',
+          votedFor: '투표한 후보',
+          registeredAt: '등록 시간',
+          votedAt: '투표 시간',
+          voteCount: '득표수',
+          docType: '데이터 타입'
+        };
+        return labels[key] || key;
+      };
+
+      return (
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="font-semibold text-gray-800 mb-3">{title}</h4>
+          <div className="space-y-2">
+            {Object.entries(data).map(([key, value]) => (
+              <div key={key} className="flex justify-between py-1 border-b border-gray-200 last:border-b-0">
+                <span className="text-gray-600 font-medium">{getKeyLabel(key)}:</span>
+                <span className="text-gray-800">{formatValue(key, value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ResultDisplay 컴포넌트 - 개선된 버전
     function ResultDisplay({ result, error }) {
       if (!result && !error) return null;
 
+      const renderResult = () => {
+        if (!result) return null;
+
+        // 투표 결과 데이터인 경우
+        if (result.candidates && Array.isArray(result.candidates)) {
+          return <VotingResultsDisplay data={result} />;
+        }
+
+        // 개별 유권자/후보자 정보인 경우
+        if (result.docType) {
+          const title = result.docType === 'voter' ? '유권자 정보' : '후보자 정보';
+          return <DataDisplay data={result} title={title} />;
+        }
+
+        // 일반 메시지 응답인 경우
+        if (result.message) {
+          return (
+            <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-green-800 font-medium">{result.message}</p>
+                  {result.candidateName && (
+                    <p className="text-green-700 text-sm mt-1">
+                      후보자: {result.candidateName} (현재 득표: {result.candidateVotes}표)
+                    </p>
+                  )}
+                  {result.totalVoters !== undefined && (
+                    <div className="mt-2 text-sm text-green-700">
+                      <p>총 유권자: {result.totalVoters}명</p>
+                      <p>총 투표수: {result.totalVotes}표</p>
+                      <p>참여율: {result.participationRate}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // 기타 JSON 데이터는 포맷팅해서 표시
+        return (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-800 mb-2">응답 데이터</h4>
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border overflow-x-auto">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          </div>
+        );
+      };
+
       return (
-        <div className="mt-6 p-4 bg-gray-100 rounded-md">
+        <div className="mt-6">
           {result && (
-            <>
-              <h3 className="text-lg font-semibold text-green-600">결과</h3>
-              <pre className="mt-2 text-sm text-gray-800">
-                {JSON.stringify(result, null, 2)}
-              </pre>
-            </>
+            <div>
+              <h3 className="text-lg font-semibold text-green-600 mb-4">실행 결과</h3>
+              {renderResult()}
+            </div>
           )}
           {error && (
-            <>
-              <h3 className="text-lg font-semibold text-red-600">오류</h3>
-              <p className="mt-2 text-sm text-red-800">{error}</p>
-            </>
+            <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-lg font-semibold text-red-800">오류 발생</h3>
+                  <p className="text-red-700 mt-1">{error}</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       );
@@ -176,7 +335,7 @@
                 <li key={func}>
                   <button
                     onClick={() => setActiveFunction(func)}
-                    className={`w-full text-left px-4 py-2 rounded-md ${
+                    className={`w-full text-left px-4 py-2 rounded-md transition-colors ${
                       activeFunction === func ? 'bg-indigo-600' : 'hover:bg-indigo-700'
                     }`}
                   >
@@ -188,12 +347,14 @@
           </div>
           {/* 메인 콘텐츠 */}
           <div className="flex-1 p-8">
-            <h1 className="text-3xl font-bold mb-8">체인코드 함수 테스터</h1>
-            <FunctionForm
-              functionName={activeFunction}
-              fields={functionConfigs[activeFunction].fields}
-              onSubmit={handleFunctionCall}
-            />
+            <h1 className="text-3xl font-bold mb-8 text-gray-800">체인코드 함수 테스터</h1>
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <FunctionForm
+                functionName={activeFunction}
+                fields={functionConfigs[activeFunction].fields}
+                onSubmit={handleFunctionCall}
+              />
+            </div>
             <ResultDisplay result={result} error={error} />
           </div>
         </div>

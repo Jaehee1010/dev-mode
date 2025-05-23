@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize the voting system
 app.get('/init', function (req, res) {
     let args = [];
-    sdk.send(false, 'initializeVotingSystem', args, res); // initLedger 대신 Init 호출
+    sdk.send(false, 'initializeVotingSystem', args, res); // Init대신 initializeVotingSystem으로 변경
 });
 
 // Register a candidate
