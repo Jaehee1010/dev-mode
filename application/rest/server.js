@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+//const crypto = require('crypto');
 const app = express();
 const path = require('path');
 const sdk = require('./sdk');
@@ -11,6 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 뒷자리 해시 함수
+// function hashRRNSuffix(rrnSuffix) {
+//     return crypto.createHash('sha256').update(rrnSuffix).digest('hex');
+// }
+
 // Initialize the voting system
 app.get('/init', function (req, res) {
     let args = [];
@@ -21,23 +27,37 @@ app.get('/init', function (req, res) {
 app.get('/registerCandidate', function (req, res) {
     let candidateId = req.query.candidateId;
     let name = req.query.name;
-    let args = [candidateId, name];
+    let partyName = req.query.partyName;
+    let args = [candidateId, partyName, name];
     sdk.send(false, 'registerCandidate', args, res);
 });
 
-// Register a voter
+// Register a voter and hash resident
 app.get('/registerVoter', function (req, res) {
-    let voterId = req.query.voterId;
     let name = req.query.name;
-    let args = [voterId, name];
+    let rrnSuffix = req.query.rrnSuffix;
+
+    if (!name || !rrnSuffix) {
+        return res.status(400).json({ error: 'name과 rrnSuffix는 필수입니다.' });
+    }
+    
+    //const hashedRrn = hashRRNSuffix(rrnSuffix);
+    const args = [name, rrnSuffix];
     sdk.send(false, 'registerVoter', args, res);
 });
 
-// Cast a vote
+// Cast a vote and hash resident
 app.get('/vote', function (req, res) {
-    let voterId = req.query.voterId;
-    let candidateId = req.query.candidateId;
-    let args = [voterId, candidateId];
+    const voterName = req.query.voterName;
+    const rrnSuffix = req.query.rrnSuffix;
+    const candidateName = req.query.candidateName;
+
+    if (!voterName || !rrnSuffix || !candidateName) {
+        return res.status(400).json({ error: 'voterName, rrnSuffix, candidateName는 필수입니다.' });
+    }
+
+    //const hashedRrn = hashRRNSuffix(rrnSuffix);
+    const args = [voterName, rrnSuffix, candidateName];
     sdk.send(false, 'vote', args, res);
 });
 
@@ -55,8 +75,15 @@ app.get('/getVotingResults', function (req, res) {
 
 // Get voter information
 app.get('/getVoterInfo', function (req, res) {
-    let voterId = req.query.voterId;
-    let args = [voterId];
+    const voterName = req.query.voterName;
+    const rrnSuffix = req.query.rrnSuffix;
+    
+    if (!voterName || !rrnSuffix) {
+        return res.status(400).json({ error: 'voterName과 rrnSuffix는 필수입니다.' });
+    }
+
+    //const hashedRrn = hashRRNSuffix(rrnSuffix);
+    const args = [voterName, rrnSuffix];
     sdk.send(true, 'getVoterInfo', args, res);
 });
 

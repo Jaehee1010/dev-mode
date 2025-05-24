@@ -30,7 +30,7 @@
       };
 
       const functionLabels = {
-        Init: '원장 초기화',
+        Init: '투표 개시(원장 초기화)',
         registerCandidate: '후보자 등록',
         registerVoter: '유권자 등록',
         vote: '투표',
@@ -261,29 +261,34 @@
         Init: { fields: [], endpoint: '/init' },
         registerCandidate: {
           fields: [
-            { name: 'candidateId', label: '후보자 ID', placeholder: '예: candidate1' },
+            { name: 'candidateId', label: '기호 번호', placeholder: '예: 1' },
+            { name: 'partyName', label: '정당 이름', placeholder: '예: 가자미당' },
             { name: 'name', label: '후보자 이름', placeholder: '예: 홍길동' },
           ],
           endpoint: '/registerCandidate',
         },
         registerVoter: {
           fields: [
-            { name: 'voterId', label: '유권자 ID', placeholder: '예: voter1' },
-            { name: 'name', label: '유권자 이름', placeholder: '예: 김영희' },
+            { name: 'name', label: '유권자 이름', placeholder: '예: 홍길동' },
+            { name: 'rrnSuffix', label: '주민등록번호', placeholder: '예: 250524-1111111' },
           ],
           endpoint: '/registerVoter',
         },
         vote: {
           fields: [
-            { name: 'voterId', label: '유권자 ID', placeholder: '예: voter1' },
-            { name: 'candidateId', label: '후보자 ID', placeholder: '예: candidate1' },
+            { name: 'voterName', label: '유권자 이름', placeholder: '예: 홍길동' },
+            { name: 'rrnSuffix', label: '주민등록번호', placeholder: '예: 250524-1111111' },
+            { name: 'candidateName', label: '후보자 이름', placeholder: '예: 이재명' },
           ],
           endpoint: '/vote',
         },
         endVoting: { fields: [], endpoint: '/endVoting' },
         getVotingResults: { fields: [], endpoint: '/getVotingResults' },
         getVoterInfo: {
-          fields: [{ name: 'voterId', label: '유권자 ID', placeholder: '예: voter1' }],
+          fields: [
+            { name: 'voterName', label: '유권자 이름', placeholder: '예: 홍길동' },
+            { name: 'rrnSuffix', label: '주민등록번호', placeholder: '예: 250524-1111111' },
+          ],
           endpoint: '/getVoterInfo',
         },
         getCandidateInfo: {
@@ -295,7 +300,7 @@
       };
 
       const functionLabels = {
-        Init: '원장 초기화',
+        Init: '투표 개시(원장 초기화)',
         registerCandidate: '후보자 등록',
         registerVoter: '유권자 등록',
         vote: '투표',

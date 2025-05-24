@@ -5,6 +5,7 @@
 */
 
 const shim = require('fabric-shim');
+const crypto = require('crypto');
 
 console.log('Starting VotingSystem.js...');
 
@@ -51,7 +52,7 @@ class VotingSystem {
     }
     
     try {
-      let payload = await method(stub, ret.params);
+      let payload = await method.apply(this, [stub, ret.params]);
       return shim.success(payload);
     } catch (err) {
       console.log('Invoke error:', err);
@@ -59,18 +60,23 @@ class VotingSystem {
     }
   }
 
+  hashResidentNumber(partialSSN){
+    return crypto.createHash('sha256').update(partialSSN).digest('hex');
+  }
+
   async registerCandidate(stub, args) {
     console.info('========= Register Candidate Start =========');
-    if (args.length !== 2) {
-      throw new Error('Incorrect number of arguments. Expecting 2 (candidateId, name)');
+    if (args.length !== 3) {
+      throw new Error('Incorrect number of arguments. Expecting 3 (candidateId, name, partyName)');
     }
     
     const candidateId = args[0];
-    const name = args[1];
+    const partyName = args[1];
+    const name = args[2];
     
     // 입력 검증
-    if (!candidateId || !name) {
-      throw new Error('candidateId and name cannot be empty');
+    if (!candidateId || !name || !partyName) {
+      throw new Error('빈칸이 있으면 안됩니다!');
     }
     
     const candidateAsBytes = await stub.getState(candidateId);
@@ -81,6 +87,7 @@ class VotingSystem {
     const candidate = {
       docType: 'candidate',
       id: candidateId,
+      partyName: partyName,
       name: name,
       voteCount: 0,
       registeredAt: new Date().toISOString()
@@ -91,7 +98,7 @@ class VotingSystem {
     
     // 안전한 Buffer 반환
     const response = { 
-      message: `후보자 ${name}(ID: ${candidateId})가 성공적으로 등록되었습니다.` 
+      message: `후보자 ${name}(정당: ${partyName})가 성공적으로 등록되었습니다.` 
     };
     return Buffer.from(JSON.stringify(response));
   }
@@ -99,22 +106,26 @@ class VotingSystem {
   async registerVoter(stub, args) {
     console.info('========= Register Voter Start =========');
     if (args.length !== 2) {
-      throw new Error('Incorrect number of arguments. Expecting 2 (voterId, name)');
+      throw new Error('Incorrect number of arguments. Expecting 2 (name, residentNumberLast7)');
     }
     
-    const voterId = args[0];
-    const name = args[1];
-    console.info('Received voterId:', voterId, 'name:', name);
+    const name = args[0];
+    const residentNumberLast7 = args[1];
+    
+    console.info('Received residentNumberLast7:', residentNumberLast7, 'name:', name);
 
     // 입력 검증
-    if (!voterId || !name) {
-      throw new Error('voterId and name cannot be empty');
+    if (!name || !residentNumberLast7) {
+      throw new Error('residentNumberLast7 and name cannot be empty');
     }
 
+    const hashedResident = this.hashResidentNumber(residentNumberLast7);
+    const voterKey = `voter_${name}_${hashedResident}`;
+
     try {
-      const voterAsBytes = await stub.getState(voterId);
+      const voterAsBytes = await stub.getState(voterKey);
       if (voterAsBytes && voterAsBytes.length > 0) {
-        throw new Error(`유권자 ${voterId} 아이디는 이미 등록되어 있습니다.`);
+        throw new Error(`유권자 ${name}는(은) 이미 등록되어 있습니다.`);
       }
 
       const votingStatusAsBytes = await stub.getState('votingActive');
@@ -122,9 +133,8 @@ class VotingSystem {
         throw new Error('votingActive state not found. Initialize the ledger first.');
       }
 
-      let votingStatus;
+      let votingStatus = JSON.parse(votingStatusAsBytes.toString());
       try {
-        votingStatus = JSON.parse(votingStatusAsBytes.toString());
         console.info('Parsed votingStatus:', votingStatus);
       } catch (parseError) {
         console.error('Failed to parse votingActive:', parseError);
@@ -137,20 +147,21 @@ class VotingSystem {
 
       const voter = {
         docType: 'voter',
-        id: voterId,
+        id: voterKey,
         name: name,
+        hashedResident: hashedResident,
         hasVoted: false,
         registeredAt: new Date().toISOString()
       };
       
-      await stub.putState(voterId, Buffer.from(JSON.stringify(voter)));
+      await stub.putState(voterKey, Buffer.from(JSON.stringify(voter)));
 
       votingStatus.totalVoters += 1;
       await stub.putState('votingActive', Buffer.from(JSON.stringify(votingStatus)));
       
       console.info('========= Register Voter Complete =========');
       return Buffer.from(JSON.stringify({
-        message: `유권자 ${name}(ID: ${voterId})가 성공적으로 등록되었습니다.`
+        message: `유권자 ${name}님이 성공적으로 등록되었습니다.`
       }));
     } catch (error) {
       console.error('registerVoter error:', error);
@@ -161,65 +172,80 @@ class VotingSystem {
   //투표 함수
   // 유권자 ID와 후보자 ID를 인자로 받아 투표를 처리
   async vote(stub, args) {
-    console.info('========= Vote Start =========');
-    if (args.length !== 2) {
-      throw new Error('Incorrect number of arguments. Expecting 2 (voterId, candidateId)');
-    }
-    
-    const voterId = args[0];
-    const candidateId = args[1];
-
-    // 입력 검증
-    if (!voterId || !candidateId) {
-      throw new Error('voterId and candidateId cannot be empty');
-    }
-
-    const votingStatusAsBytes = await stub.getState('votingActive');
-    if (!votingStatusAsBytes || votingStatusAsBytes.length === 0) {
-      throw new Error('votingActive state not found');
-    }
-    
-    const votingStatus = JSON.parse(votingStatusAsBytes.toString());
-    if (!votingStatus.isActive) {
-      throw new Error('투표가 이미 종료되었습니다.');
-    }
-
-    const voterAsBytes = await stub.getState(voterId);
-    if (!voterAsBytes || voterAsBytes.length === 0) {
-      throw new Error(`유권자 ${voterId} 아이디는 등록되지 않은 유권자입니다.`);
-    }
-    
-    const voter = JSON.parse(voterAsBytes.toString());
-    if (voter.hasVoted) {
-      throw new Error(`유권자 ${voterId}는 이미 투표를 완료했습니다.`);
-    }
-
-    const candidateAsBytes = await stub.getState(candidateId);
-    if (!candidateAsBytes || candidateAsBytes.length === 0) {
-      throw new Error(`후보자 ${candidateId} 아이디는 등록되지 않은 후보자입니다.`);
-    }
-    
-    const candidate = JSON.parse(candidateAsBytes.toString());
-
-    // 투표 처리
-    candidate.voteCount += 1;
-    await stub.putState(candidateId, Buffer.from(JSON.stringify(candidate)));
-
-    voter.hasVoted = true;
-    voter.votedFor = candidateId;
-    voter.votedAt = new Date().toISOString();
-    await stub.putState(voterId, Buffer.from(JSON.stringify(voter)));
-
-    votingStatus.totalVotes += 1;
-    await stub.putState('votingActive', Buffer.from(JSON.stringify(votingStatus)));
-
-    console.info('========= Vote Complete =========');
-    return Buffer.from(JSON.stringify({
-      message: `유권자 ${voterId}가 ${candidate.name} 후보자에게 성공적으로 투표했습니다.`,
-      candidateName: candidate.name,
-      candidateVotes: candidate.voteCount
-    }));
+  console.info('========= Vote by Name Start =========');
+  if (args.length !== 3) {
+    throw new Error('Incorrect number of arguments. Expecting 3 (voterName, candidateName, residentNumberLast7)');
   }
+
+  const voterName = args[0];
+  const residentNumberLast7 = args[1];
+  const candidateName = args[2];
+
+  if (!voterName || !residentNumberLast7 || !candidateName) {
+    throw new Error('voterName or candidateName or residentNumberLast7 cannot be empty');
+  }
+
+  const hashedResident = this.hashResidentNumber(residentNumberLast7);
+  const voterKey = `voter_${voterName}_${hashedResident}`;
+
+  const votingStatusAsBytes = await stub.getState('votingActive');
+  if (!votingStatusAsBytes || votingStatusAsBytes.length === 0) {
+    throw new Error('votingActive state not found');
+  }
+
+  const votingStatus = JSON.parse(votingStatusAsBytes.toString());
+  if (!votingStatus.isActive) {
+    throw new Error('투표가 이미 종료되었습니다.');
+  }
+
+  const voterAsBytes = await stub.getState(voterKey);
+  if (!voterAsBytes || voterAsBytes.length === 0) {
+    throw new Error(`유권자 ${voterName}는 등록되지 않은 유권자입니다.`);
+  }
+
+  const voter = JSON.parse(voterAsBytes.toString());
+  if (voter.hasVoted) {
+    throw new Error(`유권자 ${voterName}는 이미 투표를 하였습니다.`);
+  }
+
+  //후보자 이름으로 찾기
+  const iterator = await stub.getStateByRange('', '');
+  let candidate = null;
+  let candidateKey = null;
+  while (true) {
+    const res = await iterator.next();
+    if (res.value && res.value.value.toString()) {
+      const record = JSON.parse(res.value.value.toString('utf8'));
+      if (record.docType === 'candidate' && record.name === candidateName) {
+        candidate = record;
+        candidateKey = res.value.key;
+        break;
+      }
+    }
+    if (res.done) break;
+  }
+  await iterator.close();
+
+  if (!candidate) throw new Error(`등록되지 않은 후보자 이름: ${candidateName}`);
+
+  candidate.voteCount += 1;
+  await stub.putState(candidateKey, Buffer.from(JSON.stringify(candidate)));
+
+  voter.hasVoted = true;
+  voter.votedFor = candidate.id;
+  voter.votedAt = new Date().toISOString();
+  await stub.putState(voterKey, Buffer.from(JSON.stringify(voter)));
+
+  votingStatus.totalVotes += 1;
+  await stub.putState('votingActive', Buffer.from(JSON.stringify(votingStatus)));
+
+  console.info('========= Vote by Name Complete =========');
+  return Buffer.from(JSON.stringify({
+    message: `유권자 ${voter.name}가 ${candidate.name} 후보자에게 성공적으로 투표했습니다.`,
+    candidateName: candidate.name,
+    candidateVotes: candidate.voteCount
+  }));
+}
 
   async endVoting(stub, args) {
     console.info('========= End Voting Start =========');
@@ -320,20 +346,26 @@ class VotingSystem {
     return Buffer.from(JSON.stringify(results));
   }
 
+  // 유권자 정보 가져오기
   async getVoterInfo(stub, args) {
     console.info('========= Get Voter Info Start =========');
-    if (args.length !== 1) {
-      throw new Error('Incorrect number of arguments. Expecting 1 (voterId)');
+    if (args.length !== 2) {
+      throw new Error('Incorrect number of arguments. Expecting 2 (voterName, residentNumberLast7)');
     }
     
-    const voterId = args[0];
-    if (!voterId) {
-      throw new Error('voterId cannot be empty');
+    const voterName = args[0];
+    const residentNumberLast7 = args[1];
+
+    if (!voterName || !residentNumberLast7) {
+      throw new Error('빈칸을 채워주세요!');
     }
+
+    const hashedResident = this.hashResidentNumber(residentNumberLast7);
+    const voterKey = `voter_${voterName}_${hashedResident}`;
     
-    const voterAsBytes = await stub.getState(voterId);
+    const voterAsBytes = await stub.getState(voterKey);
     if (!voterAsBytes || voterAsBytes.length === 0) {
-      throw new Error(`유권자 ${voterId} 아이디는 등록되지 않은 유권자입니다.`);
+      throw new Error(`유권자 ${voterName}는 등록되지 않은 유권자입니다.`);
     }
     
     console.info('========= Get Voter Info Complete =========');
