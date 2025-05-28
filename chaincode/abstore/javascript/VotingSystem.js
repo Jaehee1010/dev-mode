@@ -111,7 +111,7 @@ class VotingSystem {
     
     const name = args[0];
     const residentNumberLast7 = args[1];
-    
+
     console.info('Received residentNumberLast7:', residentNumberLast7, 'name:', name);
 
     // 입력 검증
