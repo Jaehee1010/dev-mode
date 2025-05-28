@@ -24,7 +24,7 @@ class VotingSystem {
       const votingActive = {
         isActive: true,
         totalVoters: 0,
-        totalVotes: 0,
+        totalVotes: 0, 
         initializedAt: new Date().toISOString()
       };
       
