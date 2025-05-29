@@ -24,7 +24,7 @@ class VotingSystem {
       const votingActive = {
         isActive: true,
         totalVoters: 0,
-        totalVotes: 0, 
+        totalVotes: 0,
         initializedAt: new Date().toISOString()
       };
       
@@ -60,10 +60,12 @@ class VotingSystem {
     }
   }
 
+  // 해시함수
   hashResidentNumber(partialSSN){
     return crypto.createHash('sha256').update(partialSSN).digest('hex');
   }
 
+  //후보자 등록 함수
   async registerCandidate(stub, args) {
     console.info('========= Register Candidate Start =========');
     if (args.length !== 3) {
@@ -103,6 +105,8 @@ class VotingSystem {
     return Buffer.from(JSON.stringify(response));
   }
 
+
+  //유권자 등록 함수
   async registerVoter(stub, args) {
     console.info('========= Register Voter Start =========');
     if (args.length !== 2) {
@@ -111,7 +115,7 @@ class VotingSystem {
     
     const name = args[0];
     const residentNumberLast7 = args[1];
-
+    
     console.info('Received residentNumberLast7:', residentNumberLast7, 'name:', name);
 
     // 입력 검증
@@ -157,6 +161,7 @@ class VotingSystem {
       await stub.putState(voterKey, Buffer.from(JSON.stringify(voter)));
 
       votingStatus.totalVoters += 1;
+
       await stub.putState('votingActive', Buffer.from(JSON.stringify(votingStatus)));
       
       console.info('========= Register Voter Complete =========');
@@ -372,6 +377,7 @@ class VotingSystem {
     return voterAsBytes;
   }
 
+  // 특정 후보자 정보 가져오기
   async getCandidateInfo(stub, args) {
     console.info('========= Get Candidate Info Start =========');
     if (args.length !== 1) {
@@ -390,6 +396,38 @@ class VotingSystem {
     
     console.info('========= Get Candidate Info Complete =========');
     return candidateAsBytes;
+  }
+
+
+  // 모든 후보자 정보를 가져오는 함수
+  async getAllCandidates(stub, args) {
+    console.info('========= Get All Candidates Start =========');
+    if (args.length !== 0) {
+      throw new Error('Incorrect number of arguments. Expecting 0');
+    }
+    
+    const iterator = await stub.getStateByRange('', '');
+    const candidates = [];
+    
+    try {
+      while (true) {
+        const res = await iterator.next();
+        if (res.value && res.value.value.toString()) {
+          const record = JSON.parse(res.value.value.toString('utf8'));
+          if (record.docType === 'candidate') {
+            candidates.push(record);
+          }
+        }
+        if (res.done) {
+          break;
+        }
+      }
+    } finally {
+      await iterator.close();
+    }
+    
+    console.info('========= Get All Candidates Complete =========');
+    return Buffer.from(JSON.stringify(candidates));
   }
 }
 

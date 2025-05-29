@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<!-- 관리자 비밀번호 입력 후 진입 -->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 - 블록체인 투표 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .login-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .admin-dashboard {
+            display: none;
+        }
+
+        .section {
+            background: white;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 1rem 1.5rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .section-content {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-info {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .candidate-list {
+            margin-top: 1rem;
+        }
+
+        .candidate-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .candidate-rank {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>👨‍💼 관리자 대시보드</h1>
+            <a href="/" class="back-btn">← 메인으로</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 로그인 섹션 -->
+        <div class="login-section" id="loginSection">
+            <h2>🔐 관리자 인증</h2>
+            <br>
+            <div class="form-group">
+                <label for="adminPassword">관리자 비밀번호:</label>
+                <input type="password" id="adminPassword" placeholder="관리자 비밀번호를 입력하세요">
+            </div>
+            <button class="btn" onclick="login()">로그인</button>
+            <div id="loginResult" class="result-box" style="display: none;"></div>
+        </div>
+
+        <!-- 관리자 대시보드 -->
+        <div class="admin-dashboard" id="adminDashboard">
+            <!-- 투표 시스템 초기화 -->
+            <div class="section">
+                <div class="section-header">🚀 시스템 초기화</div>
+                <div class="section-content">
+                    <p>투표 시스템을 초기화합니다. (최초 1회만 실행)</p>
+                    <br>
+                    <button class="btn" onclick="initSystem()">시스템 초기화</button>
+                    <div id="initResult" class="result-box" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- 후보자 등록 -->
+            <div class="section">
+                <div class="section-header">👤 후보자 등록</div>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label for="candidateId">후보자 ID:</label>
+                        <input type="text" id="candidateId" placeholder="고유한 후보자 ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="candidateName">후보자 이름:</label>
+                        <input type="text" id="candidateName" placeholder="후보자 이름">
+                    </div>
+                    <div class="form-group">
+                        <label for="partyName">정당명:</label>
+                        <input type="text" id="partyName" placeholder="소속 정당">
+                    </div>
+                    <button class="btn" onclick="registerCandidate()">후보자 등록</button>
+                    <div id="candidateResult" class="result-box" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- 투표 관리 -->
+            <div class="section">
+                <div class="section-header">🗳️ 투표 관리</div>
+                <div class="section-content">
+                    <button class="btn btn-info" onclick="getVotingStatus()">투표 현황 조회</button>
+                    <button class="btn btn-danger" onclick="endVoting()">투표 종료</button>
+                    <div id="votingResult" class="result-box" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- 투표 결과 -->
+            <div class="section">
+                <div class="section-header">📊 투표 결과</div>
+                <div class="section-content">
+                    <button class="btn btn-info" onclick="getResults()">결과 조회</button>
+                    <div id="resultsDisplay" class="result-box" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- 후보자 관리 -->
+            <div class="section">
+                <div class="section-header">📋 후보자 관리</div>
+                <div class="section-content">
+                    <button class="btn btn-info" onclick="getAllCandidates()">모든 후보자 조회</button>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="searchCandidateId">특정 후보자 조회:</label>
+                        <input type="text" id="searchCandidateId" placeholder="후보자 ID 입력">
+                        <button class="btn" onclick="getCandidateInfo()" style="margin-top: 0.5rem;">조회</button>
+                    </div>
+                    <div id="candidatesDisplay" class="result-box" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+        let adminKey = '';
+
+        // 안전한 JSON 파싱 함수
+        function safeParseResponse(data) {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // 응답 데이터가 문자열인 경우
+            if (typeof data === 'string') {
+                return JSON.parse(data);
+            }
+            // data.result가 문자열인 경우
+            else if (data.result && typeof data.result === 'string') {
+                return JSON.parse(data.result);
+            }
+            // data.result가 객체인 경우
+            else if (data.result && typeof data.result === 'object') {
+                return data.result;
+            }
+            // 직접 데이터가 온 경우
+            else if (typeof data === 'object') {
+                return data;
+            }
+            else {
+                throw new Error('응답 데이터를 파싱할 수 없습니다.');
+            }
+        }
+
+        function login() {
+            const password = document.getElementById('adminPassword').value;
+            if (!password) {
+                showResult('loginResult', '비밀번호를 입력해주세요.', 'error');
+                return;
+            }
+
+            adminKey = password;
+            
+            // 관리자 권한 테스트
+            fetch('/admin/getAllCandidates', {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    throw new Error('잘못된 관리자 비밀번호입니다.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminDashboard').style.display = 'block';
+                showResult('loginResult', '관리자 로그인 성공!', 'success');
+            })
+            .catch(error => {
+                showResult('loginResult', error.message, 'error');
+                adminKey = '';
+            });
+        }
+
+        function initSystem() {
+            fetch('/admin/init', {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    const result = safeParseResponse(data);
+                    showResult('initResult', result.message || '시스템이 초기화되었습니다.', 'success');
+                } catch (error) {
+                    showResult('initResult', error.message, 'error');
+                }
+            })
+            .catch(error => {
+                showResult('initResult', '초기화 실패: ' + error.message, 'error');
+            });
+        }
+
+        function registerCandidate() {
+            const candidateId = document.getElementById('candidateId').value;
+            const candidateName = document.getElementById('candidateName').value;
+            const partyName = document.getElementById('partyName').value;
+
+            if (!candidateId || !candidateName || !partyName) {
+                showResult('candidateResult', '모든 필드를 입력해주세요.', 'error');
+                return;
+            }
+
+            fetch(`/admin/registerCandidate?candidateId=${encodeURIComponent(candidateId)}&name=${encodeURIComponent(candidateName)}&partyName=${encodeURIComponent(partyName)}`, {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    const result = safeParseResponse(data);
+                    showResult('candidateResult', result.message || '후보자가 등록되었습니다.', 'success');
+                    // 폼 초기화
+                    document.getElementById('candidateId').value = '';
+                    document.getElementById('candidateName').value = '';
+                    document.getElementById('partyName').value = '';
+                } catch (error) {
+                    showResult('candidateResult', error.message, 'error');
+                }
+            })
+            .catch(error => {
+                showResult('candidateResult', '등록 실패: ' + error.message, 'error');
+            });
+        }
+
+        function getVotingStatus() {
+            fetch('/admin/getVotingResults', {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    const result = safeParseResponse(data);
+                    const statusHtml = `
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${result.totalVoters}</div>
+                                <div>등록 유권자</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${result.totalVotes}</div>
+                                <div>총 투표수</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${result.participationRate}</div>
+                                <div>투표율</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${result.isActive ? '진행중' : '종료'}</div>
+                                <div>투표 상태</div>
+                            </div>
+                        </div>
+                    `;
+                    showResult('votingResult', statusHtml, 'success', true);
+                } catch (error) {
+                    showResult('votingResult', error.message, 'error');
+                }
+            })
+            .catch(error => {
+                showResult('votingResult', '조회 실패: ' + error.message, 'error');
+            });
+        }
+
+        function endVoting() {
+            if (!confirm('정말로 투표를 종료하시겠습니까? 종료 후에는 더 이상 투표할 수 없습니다.')) {
+                return;
+            }
+
+            fetch('/admin/endVoting', {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    const result = safeParseResponse(data);
+                    showResult('votingResult', `${result.message}\n총 유권자: ${result.totalVoters}명, 총 투표수: ${result.totalVotes}명, 투표율: ${result.participationRate}`, 'success');
+                } catch (error) {
+                    showResult('votingResult', error.message, 'error');
+                }
+            })
+            .catch(error => {
+                showResult('votingResult', '투표 종료 실패: ' + error.message, 'error');
+            });
+        }
+
+        function getResults() {
+            fetch('/admin/getVotingResults', {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    const result = safeParseResponse(data);
+                    let resultsHtml = `
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${result.totalVoters}</div>
+                                <div>총 유권자</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${result.totalVotes}</div>
+                                <div>총 투표수</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${result.participationRate}</div>
+                                <div>투표율</div>
+                            </div>
+                        </div>
+                        <div class="candidate-list">
+                    `;
+                    
+                    result.candidates.forEach((candidate, index) => {
+                        resultsHtml += `
+                            <div class="candidate-item">
+                                <span class="candidate-rank">${index + 1}위</span>
+                                <strong>${candidate.name}</strong> (${candidate.id}) - 
+                                <strong>${candidate.voteCount}표 (${candidate.votePercentage})</strong>
+                            </div>
+                        `;
+                    });
+                    
+                    resultsHtml += '</div>';
+                    showResult('resultsDisplay', resultsHtml, 'success', true);
+                } catch (error) {
+                    showResult('resultsDisplay', error.message, 'error');
+                }
+            })
+            .catch(error => {
+                showResult('resultsDisplay', '결과 조회 실패: ' + error.message, 'error');
+            });
+        }
+
+        function getAllCandidates() {
+            fetch('/admin/getAllCandidates', {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    const candidates = safeParseResponse(data);
+                    if (candidates.length === 0) {
+                        showResult('candidatesDisplay', '등록된 후보자가 없습니다.', 'error');
+                        return;
+                    }
+                    
+                    let candidatesHtml = '<div class="candidate-list">';
+                    candidates.forEach(candidate => {
+                        candidatesHtml += `
+                            <div class="candidate-item">
+                                <strong>ID:</strong> ${candidate.id}<br>
+                                <strong>이름:</strong> ${candidate.name}<br>
+                                <strong>정당:</strong> ${candidate.partyName}<br>
+                                <strong>득표수:</strong> ${candidate.voteCount}표<br>
+                                <strong>등록일:</strong> ${new Date(candidate.registeredAt).toLocaleString()}
+                            </div>
+                        `;
+                    });
+                    candidatesHtml += '</div>';
+                    showResult('candidatesDisplay', candidatesHtml, 'success', true);
+                } catch (error) {
+                    showResult('candidatesDisplay', error.message, 'error');
+                }
+            })
+            .catch(error => {
+                showResult('candidatesDisplay', '조회 실패: ' + error.message, 'error');
+            });
+        }
+
+        function getCandidateInfo() {
+            const candidateId = document.getElementById('searchCandidateId').value;
+            if (!candidateId) {
+                showResult('candidatesDisplay', '후보자 ID를 입력해주세요.', 'error');
+                return;
+            }
+
+            fetch(`/admin/getCandidateInfo?candidateId=${encodeURIComponent(candidateId)}`, {
+                headers: {
+                    'admin-key': adminKey
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    const candidate = safeParseResponse(data);
+                    const candidateHtml = `
+                        <div class="candidate-item">
+                            <strong>ID:</strong> ${candidate.id}<br>
+                            <strong>이름:</strong> ${candidate.name}<br>
+                            <strong>정당:</strong> ${candidate.partyName}<br>
+                            <strong>득표수:</strong> ${candidate.voteCount}표<br>
+                            <strong>등록일:</strong> ${new Date(candidate.registeredAt).toLocaleString()}
+                        </div>
+                    `;
+                    showResult('candidatesDisplay', candidateHtml, 'success', true);
+                } catch (error) {
+                    showResult('candidatesDisplay', error.message, 'error');
+                }
+            })
+            .catch(error => {
+                showResult('candidatesDisplay', '조회 실패: ' + error.message, 'error');
+            });
+        }
+
+        function showResult(elementId, message, type, isHtml = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            if (isHtml) {
+                element.innerHTML = message;
+            } else {
+                element.textContent = message;
+            }
+            
+            element.className = `result-box ${type}`;
+            
+            // 3초 후 자동으로 숨기기 (에러가 아닌 경우)
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Enter 키로 로그인
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('adminPassword');
+            if (passwordInput) {
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        login();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

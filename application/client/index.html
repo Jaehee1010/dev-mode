@@ -1,373 +1,139 @@
 <!DOCTYPE html>
+<!-- 관리자 및 투표자 구분 메인 페이지 -->
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>투표 시스템 체인코드 테스터</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.6/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>블록체인 투표 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-admin {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn-admin:hover {
+            background: linear-gradient(45deg, #ee5a52, #dd4b4a);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(238, 90, 82, 0.3);
+        }
+
+        .btn-voter {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-voter:hover {
+            background: linear-gradient(45deg, #44a08d, #3d8b7a);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(68, 160, 141, 0.3);
+        }
+
+        .info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(106, 156, 253, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #6a9cfd;
+        }
+
+        .info h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .info p {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 2rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect } = React;
-
-    // FunctionForm 컴포넌트
-    function FunctionForm({ functionName, fields, onSubmit }) {
-      const [formData, setFormData] = useState({});
-
-      const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-      };
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        const args = fields.map((field) => formData[field.name] || '');
-        onSubmit(functionName, args);
-      };
-
-      const functionLabels = {
-        Init: '투표 개시(원장 초기화)',
-        registerCandidate: '후보자 등록',
-        registerVoter: '유권자 등록',
-        vote: '투표',
-        endVoting: '투표 종료',
-        getVotingResults: '투표 결과 조회',
-        getVoterInfo: '유권자 정보 조회',
-        getCandidateInfo: '후보자 정보 조회',
-      };
-
-      return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="text-lg font-semibold">{functionLabels[functionName]}</h3>
-          {fields.map((field) => (
-            <div key={field.name}>
-              <label className="block text-sm font-medium text-gray-700">
-                {field.label}
-              </label>
-              <input
-                type="text"
-                name={field.name}
-                value={formData[field.name] || ''}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder={field.placeholder}
-              />
-            </div>
-          ))}
-          <button
-            type="submit"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            실행
-          </button>
-        </form>
-      );
-    }
-
-    // 투표 결과를 보기 좋게 표시하는 컴포넌트
-    function VotingResultsDisplay({ data }) {
-      return (
-        <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-blue-800 mb-2">투표 상태</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">상태:</span>
-                <span className={`ml-2 px-2 py-1 rounded text-xs ${data.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {data.isActive ? '진행중' : '종료됨'}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-600">참여율:</span>
-                <span className="ml-2 font-medium">{data.participationRate}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">등록 유권자:</span>
-                <span className="ml-2 font-medium">{data.totalVoters}명</span>
-              </div>
-              <div>
-                <span className="text-gray-600">총 투표수:</span>
-                <span className="ml-2 font-medium">{data.totalVotes}표</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-green-800 mb-3">후보자별 득표 현황</h4>
-            <div className="space-y-3">
-              {data.candidates.map((candidate, index) => (
-                <div key={candidate.id} className="bg-white p-3 rounded border">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium text-lg">
-                      {index + 1}. {candidate.name} (ID: {candidate.id})
-                    </span>
-                    <span className="text-sm text-gray-500">{candidate.votePercentage}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="flex-1 bg-gray-200 rounded-full h-3 mr-3">
-                      <div 
-                        className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
-                        style={{ width: candidate.votePercentage }}
-                      ></div>
-                    </div>
-                    <span className="font-bold text-indigo-600">{candidate.voteCount}표</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+    <div class="container">
+        <h1>🗳️ 블록체인 투표 시스템</h1>
+        <p class="subtitle">안전하고 투명한 전자투표 시스템</p>
+        
+        <div class="button-group">
+            <a href="/admin" class="btn btn-admin">
+                👨‍💼 관리자 로그인
+            </a>
+            
+            <a href="/voter" class="btn btn-voter">
+                🗳️ 투표하기
+            </a>
         </div>
-      );
-    }
 
-    // 개별 데이터를 보기 좋게 표시하는 컴포넌트
-    function DataDisplay({ data, title }) {
-      const formatValue = (key, value) => {
-        if (key === 'hasVoted') {
-          return value ? '투표 완료' : '투표 전';
-        }
-        if (key === 'registeredAt' || key === 'votedAt') {
-          return new Date(value).toLocaleString('ko-KR');
-        }
-        return value;
-      };
-
-      const getKeyLabel = (key) => {
-        const labels = {
-          id: 'ID',
-          name: '이름',
-          hasVoted: '투표 상태',
-          votedFor: '투표한 후보',
-          registeredAt: '등록 시간',
-          votedAt: '투표 시간',
-          voteCount: '득표수',
-          docType: '데이터 타입'
-        };
-        return labels[key] || key;
-      };
-
-      return (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-semibold text-gray-800 mb-3">{title}</h4>
-          <div className="space-y-2">
-            {Object.entries(data).map(([key, value]) => (
-              <div key={key} className="flex justify-between py-1 border-b border-gray-200 last:border-b-0">
-                <span className="text-gray-600 font-medium">{getKeyLabel(key)}:</span>
-                <span className="text-gray-800">{formatValue(key, value)}</span>
-              </div>
-            ))}
-          </div>
+        <div class="info">
+            <h3>📋 시스템 안내</h3>
+            <p>
+                <strong>관리자:</strong> 투표 시스템 초기화, 후보자 등록, 투표 종료, 결과 확인<br>
+                <strong>투표자:</strong> 유권자 등록, 투표 참여, 투표 현황 확인
+            </p>
         </div>
-      );
-    }
-
-    // ResultDisplay 컴포넌트 - 개선된 버전
-    function ResultDisplay({ result, error }) {
-      if (!result && !error) return null;
-
-      const renderResult = () => {
-        if (!result) return null;
-
-        // 투표 결과 데이터인 경우
-        if (result.candidates && Array.isArray(result.candidates)) {
-          return <VotingResultsDisplay data={result} />;
-        }
-
-        // 개별 유권자/후보자 정보인 경우
-        if (result.docType) {
-          const title = result.docType === 'voter' ? '유권자 정보' : '후보자 정보';
-          return <DataDisplay data={result} title={title} />;
-        }
-
-        // 일반 메시지 응답인 경우
-        if (result.message) {
-          return (
-            <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-green-800 font-medium">{result.message}</p>
-                  {result.candidateName && (
-                    <p className="text-green-700 text-sm mt-1">
-                      후보자: {result.candidateName} (현재 득표: {result.candidateVotes}표)
-                    </p>
-                  )}
-                  {result.totalVoters !== undefined && (
-                    <div className="mt-2 text-sm text-green-700">
-                      <p>총 유권자: {result.totalVoters}명</p>
-                      <p>총 투표수: {result.totalVotes}표</p>
-                      <p>참여율: {result.participationRate}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        // 기타 JSON 데이터는 포맷팅해서 표시
-        return (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-gray-800 mb-2">응답 데이터</h4>
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border overflow-x-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
-          </div>
-        );
-      };
-
-      return (
-        <div className="mt-6">
-          {result && (
-            <div>
-              <h3 className="text-lg font-semibold text-green-600 mb-4">실행 결과</h3>
-              {renderResult()}
-            </div>
-          )}
-          {error && (
-            <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-red-800">오류 발생</h3>
-                  <p className="text-red-700 mt-1">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // 메인 App 컴포넌트
-    function App() {
-      const [activeFunction, setActiveFunction] = useState('Init');
-      const [result, setResult] = useState(null);
-      const [error, setError] = useState(null);
-
-      const functionConfigs = {
-        Init: { fields: [], endpoint: '/init' },
-        registerCandidate: {
-          fields: [
-            { name: 'candidateId', label: '기호 번호', placeholder: '예: 1' },
-            { name: 'partyName', label: '정당 이름', placeholder: '예: 가자미당' },
-            { name: 'name', label: '후보자 이름', placeholder: '예: 홍길동' },
-          ],
-          endpoint: '/registerCandidate',
-        },
-        registerVoter: {
-          fields: [
-            { name: 'name', label: '유권자 이름', placeholder: '예: 홍길동' },
-            { name: 'rrnSuffix', label: '주민등록번호', placeholder: '예: 250524-1111111' },
-          ],
-          endpoint: '/registerVoter',
-        },
-        vote: {
-          fields: [
-            { name: 'voterName', label: '유권자 이름', placeholder: '예: 홍길동' },
-            { name: 'rrnSuffix', label: '주민등록번호', placeholder: '예: 250524-1111111' },
-            { name: 'candidateName', label: '후보자 이름', placeholder: '예: 이재명' },
-          ],
-          endpoint: '/vote',
-        },
-        endVoting: { fields: [], endpoint: '/endVoting' },
-        getVotingResults: { fields: [], endpoint: '/getVotingResults' },
-        getVoterInfo: {
-          fields: [
-            { name: 'voterName', label: '유권자 이름', placeholder: '예: 홍길동' },
-            { name: 'rrnSuffix', label: '주민등록번호', placeholder: '예: 250524-1111111' },
-          ],
-          endpoint: '/getVoterInfo',
-        },
-        getCandidateInfo: {
-          fields: [
-            { name: 'candidateId', label: '후보자 ID', placeholder: '예: candidate1' },
-          ],
-          endpoint: '/getCandidateInfo',
-        },
-      };
-
-      const functionLabels = {
-        Init: '투표 개시(원장 초기화)',
-        registerCandidate: '후보자 등록',
-        registerVoter: '유권자 등록',
-        vote: '투표',
-        endVoting: '투표 종료',
-        getVotingResults: '투표 결과 조회',
-        getVoterInfo: '유권자 정보 조회',
-        getCandidateInfo: '후보자 정보 조회',
-      };
-
-      const handleFunctionCall = async (functionName, args) => {
-        setResult(null);
-        setError(null);
-        const config = functionConfigs[functionName];
-        try {
-          const params = {};
-          args.forEach((arg, index) => {
-            if (config.fields[index]) {
-              params[config.fields[index].name] = arg;
-            }
-          });
-          const response = await axios.get(`http://localhost:8001${config.endpoint}`, {
-            params,
-          });
-          setResult(response.data);
-        } catch (err) {
-          setError(err.response?.data?.error || 'API 호출 중 오류가 발생했습니다.');
-        }
-      };
-
-      return (
-        <div className="flex min-h-screen bg-gray-50">
-          {/* 사이드바 */}
-          <div className="w-64 bg-indigo-800 text-white p-6">
-            <h2 className="text-2xl font-bold mb-6">투표 시스템 테스터</h2>
-            <ul className="space-y-2">
-              {Object.keys(functionConfigs).map((func) => (
-                <li key={func}>
-                  <button
-                    onClick={() => setActiveFunction(func)}
-                    className={`w-full text-left px-4 py-2 rounded-md transition-colors ${
-                      activeFunction === func ? 'bg-indigo-600' : 'hover:bg-indigo-700'
-                    }`}
-                  >
-                    {functionLabels[func]}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {/* 메인 콘텐츠 */}
-          <div className="flex-1 p-8">
-            <h1 className="text-3xl font-bold mb-8 text-gray-800">체인코드 함수 테스터</h1>
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <FunctionForm
-                functionName={activeFunction}
-                fields={functionConfigs[activeFunction].fields}
-                onSubmit={handleFunctionCall}
-              />
-            </div>
-            <ResultDisplay result={result} error={error} />
-          </div>
-        </div>
-      );
-    }
-
-    // App 렌더링
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
+    </div>
 </body>
 </html>
