@@ -9,7 +9,7 @@ const crypto = require('crypto');
 
 console.log('Starting VotingSystem.js...');
 
-class VotingSystem {
+class VotingSystem {정
 
   async Init(stub) {
     console.info('Init called - using alternative approach');
